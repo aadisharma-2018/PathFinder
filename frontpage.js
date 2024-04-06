@@ -12,6 +12,16 @@ function addTextField() {
   textFieldCounter++;
 }
 
+function handleSubmit(event) {
+  // Prevent the default form submission behavior
+  event.preventDefault();
+  // Redirect to another HTML page
+  window.location.href = "main.html";
+}
+
+// Add event listener to the form submission event
+document.getElementById("dynamic-form").addEventListener("submit", handleSubmit);
+
 document.getElementById('dynamic-form').addEventListener('submit', function(event) {
   event.preventDefault();
   const form = event.target;
