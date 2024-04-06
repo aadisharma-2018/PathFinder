@@ -11,6 +11,20 @@ function initMap() {
   directionsRenderer = new google.maps.DirectionsRenderer();
   directionsRenderer.setMap(map);
 
+  if (navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(position => {
+        const currentLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+        };
+    map.setCenter(currentLocation);
+    }, error => {
+      alert("Error getting current location: " + error.message);
+  });
+} else {
+  alert("Geolocation is not supported by this browser.");
+  }
+
   document.getElementById("calculateButton").addEventListener("click", calculateRoute);
 }
 
@@ -21,22 +35,15 @@ function calculateRoute() {
         return;
     }
 
-  if (navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(position => {
-        const currentLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-        };
-
-        const waypointsArray = waypointsInput.split("\n").map(location => {
-            return { location: location.trim(), stopover: true };
+    const waypointsArray = waypointsInput.split("\n").map(location => {
+      return { location: location.trim(), stopover: true };
     });
 
 
   const request = {
     origin: currentLocation,
     destination: waypointsArray[waypointsArray.length - 1].location,
-    waypoints: waypointsArray.slice(1, waypointsArray.length - 1),
+    waypoints: waypointsArray.slice(0, waypointsArray.length - 1),
     travelMode: "DRIVING",
   };
 
@@ -59,12 +66,6 @@ function calculateRoute() {
       window.alert("Directions request failed due to " + status);
     }
   });
-}, error => {
-        alert("Error getting current location: " + error.message);
-    });
-} else {
-    alert("Geolocation is not supported by this browser.");
-    }
 }
 
 // Helper function to convert seconds to HH:MM format
