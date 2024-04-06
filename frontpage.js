@@ -5,7 +5,7 @@ function addTextField() {
   const textField = document.createElement('div');
   textField.classList.add('form-group');
   textField.innerHTML = `
-    <label for="text-field-${textFieldCounter}">Text Field ${textFieldCounter}</label>
+    <label for="text-field-${textFieldCounter}">Location ${textFieldCounter}</label>
     <input type="text" class="form-control" id="text-field-${textFieldCounter}" name="text-field-${textFieldCounter}" required>
   `;
   textFieldContainer.appendChild(textField);
