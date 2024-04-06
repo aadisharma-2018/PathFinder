@@ -83,6 +83,22 @@ function calculateRoute() {
               directionsService.route(request, (response, status) => {
                 if (status === "OK") {
                   directionsRenderer.setDirections(response);
+                  // Calculate total distance and duration
+                  let totalDistance = 0;
+                  let totalDuration = 0;
+                  response.routes[0].legs.forEach(leg => {
+                    totalDistance += leg.distance.value; // Adding the distance of each leg
+                    totalDuration += leg.duration.value; // Adding the duration of each leg
+                  });
+
+                  // Convert distance from meters to miles
+                  const distanceInMiles = totalDistance * 0.000621371;
+                  // Convert duration from seconds to HH:MM format
+                  const durationText = convertSecondsToTimeString(totalDuration);
+
+                  // Display the estimated duration and total distance
+                  document.getElementById('duration').textContent = durationText;
+                  document.getElementById('distance').textContent = distanceInMiles.toFixed(2) + ' miles';
                 } else {
                   console.error("Directions request failed due to " + status);
                 }
