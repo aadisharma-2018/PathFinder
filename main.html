@@ -4,18 +4,22 @@
   <style>
     #map {
       height: 400px;
-      width: 50%;
+      width: 100%;
     }
   </style>
+  <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
+  <body style="background-image: url('background.jpg');">
+  </body>
   <div id="map"></div>
   <p>Enter locations:</p>
   <textarea id="waypointsInput" rows="4" cols="50"></textarea>
   <br>
   <button id="calculateButton">Calculate Route</button>
-  <p>The estimated duration of this trip is: <span id='duration'></span></p>
-  <p>The total distance of this trip is: <span id='distance'></span></p>
+  <p></p>
+  <p1>The estimated duration of this trip is: <span id='duration'></span></p>
+  <p2>The total distance of this trip is: <span id='distance'></span></p>
 
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBSkvWDFjNLv5qt7Y4DdfdUj_5kpZ6TxH0&callback=initMap"></script>
   <script src="script.js"></script>
