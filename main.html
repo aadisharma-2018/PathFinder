@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      #map{
+        height: 400px;
+        width: 100%
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      function initMap() {
+        // Specify the center and zoom level of the map
+        const mapOptions = {
+          zoom: 10, // Adjust the zoom level as needed
+          center: { lat: 40.7128, lng: -74.0060 } // Example: New York, NY
+        };
+  
+        // Create a new Google Map object with the specified options
+        const map = new google.maps.Map(document.getElementById("map"), mapOptions);
+      }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBSkvWDFjNLv5qt7Y4DdfdUj_5kpZ6TxH0&libraries=places"></script>
+  <script>
+    function initMap() {
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 10,
+        center: { lat: 40.7128, lng: -74.0060 }, // Example: New York, NY
+      });
+    
+      const directionsService = new google.maps.DirectionsService();
+      const directionsRenderer = new google.maps.DirectionsRenderer();
+      directionsRenderer.setMap(map);
+    
+      const request = {
+        origin: "New York, NY",
+        destination: "Los Angeles, CA",
+        travelMode: "DRIVING",
+      };
+    
+      directionsService.route(request, (response, status) => {
+        if (status === "OK") {
+          directionsRenderer.setDirections(response);
+        } else {
+          window.alert("Directions request failed due to " + status);
+        }
+      });
+    }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script>
+    </body>
+</html>
+
+
+  
