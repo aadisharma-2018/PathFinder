@@ -11,61 +11,113 @@ function initMap() {
   directionsRenderer = new google.maps.DirectionsRenderer();
   directionsRenderer.setMap(map);
 
-  document.getElementById("calculateButton").addEventListener("click", calculateRoute);
-}
-
-function calculateRoute() {
-  const waypointsInput = document.getElementById("waypointsInput").value;
-    if(!waypointsInput){
-        alert("Please enter at least one location");
-        return;
-    }
-
   if (navigator.geolocation){
     navigator.geolocation.getCurrentPosition(position => {
         const currentLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
         };
-
-        const waypointsArray = waypointsInput.split("\n").map(location => {
-            return { location: location.trim(), stopover: true };
-    });
-
-
-  const request = {
-    origin: currentLocation,
-    destination: waypointsArray[waypointsArray.length - 1].location,
-    waypoints: waypointsArray.slice(1, waypointsArray.length - 1),
-    travelMode: "DRIVING",
-  };
-
-  directionsService.route(request, (response, status) => {
-    if (status === "OK") {
-      directionsRenderer.setDirections(response);
-      const route = response.routes[0];
-      let totalDistance = 0;
-      let totalDuration = 0;
-      route.legs.forEach(leg => {
-        totalDistance += leg.distance.value; // Adding the distance of each leg
-        totalDuration += leg.duration.value; // Adding the duration of each leg
-      });
-      const distanceInMiles = totalDistance * 0.000621371; // Convert meters to miles
-      const distanceText = distanceInMiles.toFixed(2) + ' miles';
-      const durationText = convertSecondsToTimeString(totalDuration);
-      document.getElementById('distance').textContent = distanceText;
-      document.getElementById('duration').textContent = durationText;
-    } else {
-      window.alert("Directions request failed due to " + status);
-    }
+    map.setCenter(currentLocation);
+    }, error => {
+      alert("Error getting current location: " + error.message);
   });
-}, error => {
-        alert("Error getting current location: " + error.message);
-    });
 } else {
-    alert("Geolocation is not supported by this browser.");
-    }
+  alert("Geolocation is not supported by this browser.");
+  }
+
+  document.getElementById("calculateButton").addEventListener("click", calculateRoute);
 }
+
+
+function calculateRoute() {
+  const waypointsInput = document.getElementById("waypointsInput").value.trim();
+  if (!waypointsInput) {
+    alert("Please enter at least one waypoint.");
+    return;
+  }
+
+  // Split the input value into an array of addresses
+  const addresses = waypointsInput.split("\n").map(address => address.trim());
+
+  // Geocoder instance to obtain coordinates
+  const geocoder = new google.maps.Geocoder();
+  const locations = [];
+
+  // Get the user's current location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      const currentLocation = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      };
+
+      // Iterate through each address to geocode and calculate distance
+      addresses.forEach((address, index) => {
+        geocoder.geocode({ address: address }, (results, status) => {
+          if (status === "OK") {
+            const location = results[0].geometry.location;
+            
+            // Calculate distance from current location to waypoint
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(
+              new google.maps.LatLng(currentLocation.lat, currentLocation.lng),
+              new google.maps.LatLng(location.lat(), location.lng())
+            );
+
+            // Add location and distance to the locations array
+            locations.push({ location: location, distance: distance, stopover: true });
+
+            // If all addresses have been processed, proceed to calculate the route
+            if (locations.length === addresses.length) {
+              // Sort locations based on distance
+              locations.sort((a, b) => a.distance - b.distance);
+
+              // Use the sorted locations to construct the Directions API request
+              const request = {
+                origin: currentLocation,
+                destination: locations[locations.length - 1].location, // Destination is the same as origin to create a round trip
+                waypoints: locations.slice(0, -1).map(location => ({ location: location.location, stopover: true })),
+                travelMode: "DRIVING",
+              };
+
+              // Call the Directions API to calculate the route
+              directionsService.route(request, (response, status) => {
+                if (status === "OK") {
+                  directionsRenderer.setDirections(response);
+                  // Calculate total distance and duration
+                  let totalDistance = 0;
+                  let totalDuration = 0;
+                  response.routes[0].legs.forEach(leg => {
+                    totalDistance += leg.distance.value; // Adding the distance of each leg
+                    totalDuration += leg.duration.value; // Adding the duration of each leg
+                  });
+
+                  // Convert distance from meters to miles
+                  const distanceInMiles = totalDistance * 0.000621371;
+                  // Convert duration from seconds to HH:MM format
+                  const durationText = convertSecondsToTimeString(totalDuration);
+
+                  // Display the estimated duration and total distance
+                  document.getElementById('duration').textContent = durationText;
+                  document.getElementById('distance').textContent = distanceInMiles.toFixed(2) + ' miles';
+                } else {
+                  console.error("Directions request failed due to " + status);
+                }
+              });
+            }
+          } else {
+            console.error("Geocode failed for address: " + address);
+          }
+        });
+      });
+    }, error => {
+      alert("Error getting current location: " + error.message);
+    });
+  } else {
+    alert("Geolocation is not supported by this browser.");
+  }
+}
+
+
 
 // Helper function to convert seconds to HH:MM format
 function convertSecondsToTimeString(seconds) {

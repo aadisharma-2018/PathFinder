@@ -12,6 +12,13 @@ function addTextField() {
   textFieldCounter++;
 }
 
+function handleSubmit(event){
+  event.preventDefault();
+  window.location.href = "main.html"
+}
+
+document.getElementById("dynamic-form").addEventListener("submit", handleSubmit);
+
 document.getElementById('dynamic-form').addEventListener('submit', function(event) {
   event.preventDefault();
   const form = event.target;
