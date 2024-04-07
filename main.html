@@ -3,26 +3,37 @@
 <head>
   <!-- <h1> We love leo </h1> -->
   <style>
+    #map-container{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 500px;
+    }
     #map {
-      height: 400px;
+      height: 500px;
       width: 100%;
     }
   </style>
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
+  <nav>
+    <div class="logo"><a href="frontpage.html">Pathfinder</a></div>
+  </nav>
   <body style="background-image: url('background.jpg');">
   </body>
+  <div id="map-container">
   <div id="map"></div>
+  </div>
   <p>Enter locations:</p>
   <input type="text" id="waypointsInput">
   <button id="addLocationButton">Add</button>
-  <ul id="locationsList"></ul>
+  <p3 id="locationsList"></p3>
   <button id="clearListButton">Clear List</button>
   <br>
   <button id="calculateButton">Calculate Route</button>
   <p></p>
-  <p1>The estimated duration of this trip is: <span id='duration'></span></p>
+  <p1>The estimated duration of this trip is: <span id='duration' ></span></p>
   <p2>The total distance of this trip is: <span id='distance'></span></p>
 
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBSkvWDFjNLv5qt7Y4DdfdUj_5kpZ6TxH0&libraries=places&callback=initMap" async defer></script>

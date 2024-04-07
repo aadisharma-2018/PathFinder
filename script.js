@@ -91,6 +91,9 @@ function calculateRoute() {
     } else {
       reject("Geolocation is not supported by this browser.");
     }
+
+    document.querySelector('p1').style.display = 'block';
+
   });
 
   currentLocationPromise.then(currentLocation => {
