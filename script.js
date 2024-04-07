@@ -1,6 +1,7 @@
 let map;
 let directionsService;
 let directionsRenderer;
+let locations = [];
 
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
@@ -10,6 +11,7 @@ function initMap() {
   directionsService = new google.maps.DirectionsService();
   directionsRenderer = new google.maps.DirectionsRenderer();
   directionsRenderer.setMap(map);
+
 
   if (navigator.geolocation){
     navigator.geolocation.getCurrentPosition(position => {
@@ -26,96 +28,131 @@ function initMap() {
   }
 
   document.getElementById("calculateButton").addEventListener("click", calculateRoute);
+
+  initAutocomplete();
+}
+
+document.getElementById('clearListButton').addEventListener('click', function() {
+  locations = []; // Clear the locations array
+  document.getElementById('locationsList').innerHTML = ''; // Clear the list display
+  directionsRenderer.setDirections({ routes: []});
+  document.getElementById('distance').textContent = '';
+  document.getElementById('duration').textContent = '';
+});
+
+function addLocationToList(location) {
+  const locationsList = document.getElementById('locationsList');
+  const listItem = document.createElement('li');
+  listItem.textContent = location;
+  locationsList.appendChild(listItem);
+}
+
+document.getElementById('addLocationButton').addEventListener('click', function() {
+  const inputField = document.getElementById('waypointsInput');
+  const location = inputField.value.trim();
+
+  if (location){
+    locations.push(location);
+    addLocationToList(location);
+    clearInputField();
+  }  else {
+    alert('Please enter a location. ');
+  }
+});
+
+function clearInputField(){
+  document.getElementById('waypointsInput').value = '';
+}
+
+function initAutocomplete() {
+  const inputField = document.getElementById('waypointsInput');
+  const autocomplete = new google.maps.places.Autocomplete(inputField);
 }
 
 
 function calculateRoute() {
-  const waypointsInput = document.getElementById("waypointsInput").value.trim();
-  if (!waypointsInput) {
+  if (locations.length === 0) {
     alert("Please enter at least one waypoint.");
     return;
   }
 
-  // Split the input value into an array of addresses
-  const addresses = waypointsInput.split("\n").map(address => address.trim());
-
-  // Geocoder instance to obtain coordinates
   const geocoder = new google.maps.Geocoder();
-  const locations = [];
+  const currentLocationPromise = new Promise((resolve, reject) => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        const currentLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        resolve(currentLocation);
+      }, error => {
+        reject("Error getting current location: " + error.message);
+      });
+    } else {
+      reject("Geolocation is not supported by this browser.");
+    }
+  });
 
-  // Get the user's current location
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(position => {
-      const currentLocation = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      };
-
-      // Iterate through each address to geocode and calculate distance
-      addresses.forEach((address, index) => {
-        geocoder.geocode({ address: address }, (results, status) => {
-          if (status === "OK") {
-            const location = results[0].geometry.location;
-            
-            // Calculate distance from current location to waypoint
+  currentLocationPromise.then(currentLocation => {
+    // Calculate distances for each location
+    const locationPromises = locations.map(location => {
+      return new Promise((resolve, reject) => {
+        geocoder.geocode({ address: location }, (results, status) => {
+          if (status === "OK" && results.length > 0) {
+            const locationCoords = results[0].geometry.location;
             const distance = google.maps.geometry.spherical.computeDistanceBetween(
               new google.maps.LatLng(currentLocation.lat, currentLocation.lng),
-              new google.maps.LatLng(location.lat(), location.lng())
+              new google.maps.LatLng(locationCoords.lat(), locationCoords.lng())
             );
-
-            // Add location and distance to the locations array
-            locations.push({ location: location, distance: distance, stopover: true });
-
-            // If all addresses have been processed, proceed to calculate the route
-            if (locations.length === addresses.length) {
-              // Sort locations based on distance
-              locations.sort((a, b) => a.distance - b.distance);
-
-              // Use the sorted locations to construct the Directions API request
-              const request = {
-                origin: currentLocation,
-                destination: locations[locations.length - 1].location, // Destination is the same as origin to create a round trip
-                waypoints: locations.slice(0, -1).map(location => ({ location: location.location, stopover: true })),
-                travelMode: "DRIVING",
-              };
-
-              // Call the Directions API to calculate the route
-              directionsService.route(request, (response, status) => {
-                if (status === "OK") {
-                  directionsRenderer.setDirections(response);
-                  // Calculate total distance and duration
-                  let totalDistance = 0;
-                  let totalDuration = 0;
-                  response.routes[0].legs.forEach(leg => {
-                    totalDistance += leg.distance.value; // Adding the distance of each leg
-                    totalDuration += leg.duration.value; // Adding the duration of each leg
-                  });
-
-                  // Convert distance from meters to miles
-                  const distanceInMiles = totalDistance * 0.000621371;
-                  // Convert duration from seconds to HH:MM format
-                  const durationText = convertSecondsToTimeString(totalDuration);
-
-                  // Display the estimated duration and total distance
-                  document.getElementById('duration').textContent = durationText;
-                  document.getElementById('distance').textContent = distanceInMiles.toFixed(2) + ' miles';
-                } else {
-                  console.error("Directions request failed due to " + status);
-                }
-              });
-            }
+            resolve({ location: locationCoords, distance: distance, stopover: true });
           } else {
-            console.error("Geocode failed for address: " + address);
+            reject("Geocode failed for address: " + location);
           }
         });
       });
-    }, error => {
-      alert("Error getting current location: " + error.message);
     });
-  } else {
-    alert("Geolocation is not supported by this browser.");
-  }
+
+    // Wait for all distance calculations to complete
+    Promise.all(locationPromises).then(locationsWithDistances => {
+      // Sort locations based on distance
+      locationsWithDistances.sort((a, b) => a.distance - b.distance);
+
+      const waypoints = locationsWithDistances.map(location => {
+        return { location: location.location, stopover: true };
+      });
+
+      const request = {
+        origin: currentLocation,
+        destination: waypoints[waypoints.length - 1].location,
+        waypoints: waypoints.slice(0, -1),
+        travelMode: "DRIVING"
+      };
+
+      directionsService.route(request, (response, status) => {
+        if (status === "OK") {
+          directionsRenderer.setDirections(response);
+          let totalDistance = 0;
+          let totalDuration = 0;
+          response.routes[0].legs.forEach(leg => {
+            totalDistance += leg.distance.value;
+            totalDuration += leg.duration.value;
+          });
+          const distanceInMiles = totalDistance * 0.000621371;
+          const durationText = convertSecondsToTimeString(totalDuration);
+          document.getElementById('duration').textContent = durationText;
+          document.getElementById('distance').textContent = distanceInMiles.toFixed(2) + ' miles';
+        } else {
+          console.error("Directions request failed due to " + status);
+        }
+      });
+    }).catch(error => {
+      alert(error);
+    });
+  }).catch(error => {
+    alert(error);
+  });
 }
+
 
 
 
