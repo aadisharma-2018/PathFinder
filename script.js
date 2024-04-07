@@ -93,10 +93,13 @@ function calculateRoute() {
     }
 
     document.querySelector('p1').style.display = 'block';
-
   });
 
+  
   currentLocationPromise.then(currentLocation => {
+    const origin = encodeURIComponent(currentLocation.lat + "," + currentLocation.lng);
+
+
     // Calculate distances for each location
     const locationPromises = locations.map(location => {
       return new Promise((resolve, reject) => {
@@ -119,6 +122,20 @@ function calculateRoute() {
     Promise.all(locationPromises).then(locationsWithDistances => {
       // Sort locations based on distance
       locationsWithDistances.sort((a, b) => a.distance - b.distance);
+
+      const destinationLocation = locationsWithDistances[locationsWithDistances.length - 1].location;
+      const encodedDestination = encodeURIComponent(destinationLocation.lat() + "," + destinationLocation.lng());
+      const waypointsForURL = locationsWithDistances.slice(0, -1).map(location => {
+        return encodeURIComponent(location.location.lat() + "," + location.location.lng());}).join("|");
+    
+      // Construct the URL with encoded route information
+      const routeURL = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${encodedDestination}&waypoints=${waypointsForURL}`;
+  
+      // Display the link to the user
+      const linkElement = document.createElement('a');
+      linkElement.href = routeURL;
+      linkElement.textContent = "Click here to view the optimal route";
+      document.body.appendChild(linkElement);
 
       const waypoints = locationsWithDistances.map(location => {
         return { location: location.location, stopover: true };
@@ -154,12 +171,9 @@ function calculateRoute() {
   }).catch(error => {
     alert(error);
   });
+
 }
 
-
-
-
-// Helper function to convert seconds to HH:MM format
 function convertSecondsToTimeString(seconds) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
